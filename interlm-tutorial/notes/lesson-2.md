@@ -77,3 +77,20 @@ cur_query_prompt = '<|im_start|>user\n{user}<|im_end|>\n\
 system prompt以及每一轮对话，都被封装成一个message对象，里面有role和content，在每一轮推理前，把messages和对应的模板格式化在一起， 然后把各个message拼接在一起，组成真正的prompt。
 
 循环调用__call()进行推理，通过yield返回迭代器，实现流式输出。
+
+# 智能体
+相关的模块
+```
+from lagent.actions import ActionExecutor, ArxivSearch, IPythonInterpreter
+from lagent.agents.internlm2_agent import INTERPRETER_CN, META_CN, PLUGIN_CN, Internlm2Agent, Internlm2Protocol
+from lagent.llms import HFTransformer
+from lagent.llms.meta_template import INTERNLM2_META as META
+from lagent.schema import AgentStatusCode
+```
+HFTransformer和META，初始化模型的时候用。
+用model来初始化一个Internlm2Agent， 推理时调用agent来推理得到结果。
+
+为什么叫智能体，怎么实现的，还不懂，还需要学。
+
+# 图文写作
+
