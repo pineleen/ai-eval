@@ -75,3 +75,5 @@ cur_query_prompt = '<|im_start|>user\n{user}<|im_end|>\n\
     <|im_start|>assistant
 ```
 system prompt以及每一轮对话，都被封装成一个message对象，里面有role和content，在每一轮推理前，把messages和对应的模板格式化在一起， 然后把各个message拼接在一起，组成真正的prompt。
+
+循环调用__call()进行推理，通过yield返回迭代器，实现流式输出。
