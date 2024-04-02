@@ -202,3 +202,22 @@ D.<image>[UNUSED_TOKEN_145]
 最终找到所有需要插图的位置。
 ```
 * 展示
+
+# 多模态图片理解
+图片的处理方法
+```
+self.chat_model = AutoModelForCausalLM.from_pretrained(code_path, device_map='cuda', trust_remote_code=True).half().eval()
+img_pil = Image.open(image[j]).convert('RGB')
+imgs_pil.append(img_pil)
+img = self.chat_model.vis_processor(img_pil)
+imgs.append(img)
+imgs = torch.stack(imgs, dim=0)
+with torch.no_grad():
+    with torch.cuda.amp.autocast():
+        image_emb = self.chat_model.encode_img(imgs)
+#生成图片的emb
+
+prompt_segs = ['[UNUSED_TOKEN_146]system\nYou are an AI assistant whose name is InternLM-XComposer (浦语·灵笔) xxx.\n[UNUSED_TOKEN_145]\n', '[UNUSED_TOKEN_146]user\n请分析这张图片[UNUSED_TOKEN_145]\n[UNUSED_TOKEN_146]assistant\n']
+#得到文本的token然后emb
+#将图片和文本的emb放在一起，传给模型。
+```
