@@ -100,7 +100,7 @@ openai展示了在请求测调用工具的例子，https://openai.com/blog/funct
 用户问：What’s the weather like in Boston right now?
 程序流程：
 1. 请求中带着function
-   ```
+```
    curl https://api.openai.com/v1/chat/completions -u :$OPENAI_API_KEY -H 'Content-Type: application/json' -d '{
   "model": "gpt-3.5-turbo-0613",
   "messages": [
@@ -127,7 +127,7 @@ openai展示了在请求测调用工具的例子，https://openai.com/blog/funct
     }
   ]
 }'
-   ```
+```
 返回：
 ```
 {
@@ -148,9 +148,9 @@ openai展示了在请求测调用工具的例子，https://openai.com/blog/funct
 }
 ```
 2. 用模型第一步返回的参数，去调用工具，curl https://weatherapi.com/...，得到天气信息
-'''
+```
 { "temperature": 22, "unit": "celsius", "description": "Sunny" }
-'''
+```
 3. 拿到工具的结果信息之后，将信息写在prompt里，继续请求llm
 ```
 curl https://api.openai.com/v1/chat/completions -u :$OPENAI_API_KEY -H 'Content-Type: application/json' -d '{
