@@ -91,6 +91,115 @@ HFTransformer和META，初始化模型的时候用。
 用model来初始化一个Internlm2Agent， 推理时调用agent来推理得到结果。
 
 为什么叫智能体，怎么实现的，还不懂，还需要学。
+## 工具调用的实现
+什么是function call？
+https://platform.openai.com/docs/guides/function-calling
+函数调用，是指用户可以在prompt中带上函数的定义和描述信息， 大模型会判断是否要去调用这个函数，如果调用，会返回调用函数需要的json，可以让用户去执行tool，然后继续请求大模型，将结果组织成语言。
+* 模型在sft训练的时候需要支持能够输出json
+openai展示了在请求测调用工具的例子，https://openai.com/blog/function-calling-and-other-api-updates
+用户问：What’s the weather like in Boston right now?
+程序流程：
+1. 请求中带着function
+   ```
+   curl https://api.openai.com/v1/chat/completions -u :$OPENAI_API_KEY -H 'Content-Type: application/json' -d '{
+  "model": "gpt-3.5-turbo-0613",
+  "messages": [
+    {"role": "user", "content": "What is the weather like in Boston?"}
+  ],
+  "functions": [
+    {
+      "name": "get_current_weather",
+      "description": "Get the current weather in a given location",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The city and state, e.g. San Francisco, CA"
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["celsius", "fahrenheit"]
+          }
+        },
+        "required": ["location"]
+      }
+    }
+  ]
+}'
+   ```
+返回：
+```
+{
+  "id": "chatcmpl-123",
+  ...
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "function_call": {
+        "name": "get_current_weather",
+        "arguments": "{ \"location\": \"Boston, MA\"}"
+      }
+    },
+    "finish_reason": "function_call"
+  }]
+}
+```
+2. 用模型第一步返回的参数，去调用工具，curl https://weatherapi.com/...，得到天气信息
+'''
+{ "temperature": 22, "unit": "celsius", "description": "Sunny" }
+'''
+3. 拿到工具的结果信息之后，将信息写在prompt里，继续请求llm
+```
+curl https://api.openai.com/v1/chat/completions -u :$OPENAI_API_KEY -H 'Content-Type: application/json' -d '{
+  "model": "gpt-3.5-turbo-0613",
+  "messages": [
+    {"role": "user", "content": "What is the weather like in Boston?"},
+    {"role": "assistant", "content": null, "function_call": {"name": "get_current_weather", "arguments": "{ \"location\": \"Boston, MA\"}"}},
+    {"role": "function", "name": "get_current_weather", "content": "{\"temperature\": "22", \"unit\": \"celsius\", \"description\": \"Sunny\"}"}
+  ],
+  "functions": [
+    {
+      "name": "get_current_weather",
+      "description": "Get the current weather in a given location",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The city and state, e.g. San Francisco, CA"
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["celsius", "fahrenheit"]
+          }
+        },
+        "required": ["location"]
+      }
+    }
+  ]
+}
+```
+4. 将大模型的回答，展示给用户
+```
+{
+  "id": "chatcmpl-123",
+  ...
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "The weather in Boston is currently sunny with a temperature of 22 degrees Celsius.",
+    },
+    "finish_reason": "stop"
+  }]
+}
+```
+### 怎么做的
+一种做法是在fine-tune阶段，训练数据中引入一种特殊的工具标识符，称为toolken。当模型在推理时，toolken会像一般的token一样被推理产生。一旦产生了toolken，就返回。应用程序产生工具调用后，再继续推理。
+
 
 # 图文写作
 prompt过程
@@ -172,7 +281,7 @@ prompt过程
 最终生成的标题有
 {1: '一张古老的水墨画卷轴，上面描绘着传统的中国山水风景。', 3: '一群人在书房里研究古代的水墨画作品，旁边放着一本古籍和一盏蜡烛。', 5: '一位艺术家正在专注地创作水墨画，背景是一间充满艺术气息的工作室。', 7: '一幅精致的水墨画，画面上有一棵古老的树，树下有一位诗人正在沉思。', 9: '一个博物馆内的展览，展出的是一系列精美的水墨画作品。', 11: '一个年轻的艺术家站在一片美丽的自然景色前，手中拿着画笔，准备开始创作。'}
 ```
-* 然后去下载相应的图片(为什么能下载到合适的图片？)
+* 然后去搜索下载相应的图片(预置的， 甚至也可以现生成)
 * 让模型去选择适合放在特定位置上的图片
 ```
 [UNUSED_TOKEN_146]user
